@@ -3,6 +3,7 @@ import express from "express";
 
 const app : express.Express   = express();
 const serverInstance : Server = new Server(app);
+
 serverInstance.registerRoutes().then(() => {
   serverInstance.registerRoutesToServer().then(() => {
     app.use(serverInstance.getRouter());
