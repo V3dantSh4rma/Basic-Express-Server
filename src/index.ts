@@ -3,6 +3,9 @@ import express from "express";
 
 const app : express.Express   = express();
 const serverInstance : Server = new Server(app);
-serverInstance.startServer(6969).catch(error => console.error(error));
-serverInstance.registerRoutes().catch(e => console.error(e));
-serverInstance.registerRoutesToServer().catch(e => console.error(e));
+serverInstance.registerRoutes();
+serverInstance.registerRoutesToServer();
+
+setTimeout(() => {
+  serverInstance.startServer(6969);
+}, 3000);
