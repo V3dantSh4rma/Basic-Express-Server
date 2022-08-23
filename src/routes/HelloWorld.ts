@@ -1,12 +1,12 @@
+import { Request, Response } from "express";
 import {Route} from "../handlers/route";
 
 export class HelloWorld extends Route {
-	public Route: string = '/hello';
-
-	public async handle( req: any, res: any ) : Promise<any>{
-		res.render({
-			"hello":"world"
-		});
+	constructor() {
+		super("get", "/hello");
 	}
 
+	handler(req: Request, res: Response): void {
+		res.send({ hello: 'world' });
+	}
 }
