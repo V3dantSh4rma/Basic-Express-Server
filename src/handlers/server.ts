@@ -1,14 +1,16 @@
-import express   from "express";
+import express, {Router}   from "express";
 import { Route } from "./route";
-import * as fs   from "fs";
+import * as fs   from "fs/promises";
 import path      from "path";
 
 export default class Server {
 	private app : express.Express;
-	public routes : Map<string, Route> = new Map(); // This is the container where we will store the routes (/).
+	public routes: { path: string, route: Route }[] = []; // This is the container where we will store the routes (/).
+	public router: { [n: string]: any };
 
 	constructor( app : express.Express ){
 		this.app = app;
+		this.router = Router();
 	}
 
 
@@ -22,21 +24,37 @@ export default class Server {
 		});
 	}
 
-	public registerRoutes() : void {
-		fs.readdirSync(path.join(__dirname, "..", "routes"))
-			.filter(( f : string ) => f.endsWith(".ts" || ".js"))
-			.forEach(( file : string ) => {
-				const routeFile : Route = require(file);
-				this.routes.set(routeFile.getPath(), routeFile);
-				console.log('setting route:', routeFile.getPath());
-			});
+	public registerRoutes() : Promise<void> {
+		const routesDir = path.join(__dirname, "..", "routes");
+
+		return new Promise(async (resolve) => {
+			const files = await fs.readdir(routesDir);
+			files.filter(( f : string ) => f.endsWith(".ts" || ".js"))
+				.forEach(async ( file : string, index : number ) => {
+					const routeFile = await import(path.join(routesDir, file));
+					let route;
+					for(let c in routeFile) {
+						route = new routeFile[c]();
+					}
+					this.routes.push({ path: route.getPath(), route });
+
+					if (index === files.length - 1) {
+						resolve();
+					}
+				});
+		});
 	}
 
-	public registerRoutesToServer() : void {
-		this.routes.forEach(( route : Route ) => {
-			// @ts-ignore
-			this.app[route.getMethod()].apply(route.getPath(), route.handler);
-			console.log('adding route:', route.getPath());
+	public registerRoutesToServer() : Promise<any> {
+		const buildRouter = this.routes.map(( r: any ) => {
+			this.router[r.route.getMethod()].apply(this.router, [r.route.getPath(), r.route.handler]);
+			console.log('adding route:', r.route.getPath());
 		});
+
+		return Promise.all(buildRouter);
+	}
+
+	public getRouter(): Router {
+		return <Router>this.router;
 	}
 }
